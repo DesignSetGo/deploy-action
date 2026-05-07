@@ -1,0 +1,11 @@
+{
+  "manifest_version": 1,
+  "id": "smoke-test",
+  "name": "Smoke Test",
+  "version": "0.1.0",
+  "entry": "index.html",
+  "isolation": "iframe",
+  "display": { "modes": ["page"], "default": "page" },
+  "permissions": { "read": [], "write": [] },
+  "runtime": { "sandbox": "strict" }
+}

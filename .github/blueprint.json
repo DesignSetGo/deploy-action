@@ -1,0 +1,14 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "preferredVersions": { "php": "8.2", "wp": "latest" },
+  "steps": [
+    {
+      "step": "installPlugin",
+      "pluginZipFile": {
+        "resource": "url",
+        "url": "https://github.com/DesignSetGo/designsetgo-apps/releases/latest/download/designsetgo-apps.zip"
+      },
+      "options": { "activate": true }
+    }
+  ]
+}

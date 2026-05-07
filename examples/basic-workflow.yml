@@ -1,0 +1,24 @@
+name: Deploy DSGo App
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: dsgo-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci && npm run build  # if your bundle has a build step
+      - uses: DesignSetGo/deploy-action@v1
+        with:
+          site: ${{ secrets.DSGO_SITE }}
+          username: ${{ secrets.DSGO_USER }}
+          app-password: ${{ secrets.DSGO_APP_PASSWORD }}
+          bundle: dist

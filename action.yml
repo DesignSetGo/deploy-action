@@ -1,0 +1,60 @@
+name: 'Deploy DSGo App'
+description: 'Deploy a DesignSetGo Apps bundle to a WordPress site'
+author: 'DesignSetGo'
+branding:
+  icon: 'upload-cloud'
+  color: 'blue'
+
+inputs:
+  site:
+    description: 'WordPress site URL (e.g. https://example.com)'
+    required: true
+  username:
+    description: 'WordPress username with manage_options capability'
+    required: true
+  app-password:
+    description: 'WordPress Application Password for that user'
+    required: true
+  bundle:
+    description: 'Path to the bundle directory. Defaults to ./dist if it exists, else the repo root.'
+    required: false
+    default: ''
+  cli-version:
+    description: 'Version range of @designsetgo/cli to install (npm semver range)'
+    required: false
+    default: '^1'
+
+outputs:
+  app-url:
+    description: 'URL of the deployed app'
+    value: ${{ steps.deploy.outputs.app-url }}
+  app-id:
+    description: 'Manifest id of the deployed app'
+    value: ${{ steps.deploy.outputs.app-id }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install DSGo CLI
+      shell: bash
+      run: npm install -g "@designsetgo/cli@${{ inputs.cli-version }}"
+
+    - name: Deploy
+      id: deploy
+      shell: bash
+      env:
+        DSGO_SITE: ${{ inputs.site }}
+        DSGO_USER: ${{ inputs.username }}
+        DSGO_APP_PASSWORD: ${{ inputs.app-password }}
+      run: |
+        set -euo pipefail
+        if [[ -n "${{ inputs.bundle }}" ]]; then
+          OUT=$(designsetgo apps deploy "${{ inputs.bundle }}" --json)
+        else
+          OUT=$(designsetgo apps deploy --json)
+        fi
+        echo "$OUT"
+        APP_URL=$(echo "$OUT" | jq -r '.url')
+        APP_ID=$(echo "$OUT" | jq -r '.id')
+        echo "app-url=$APP_URL" >> "$GITHUB_OUTPUT"
+        echo "app-id=$APP_ID" >> "$GITHUB_OUTPUT"

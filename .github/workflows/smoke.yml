@@ -1,0 +1,65 @@
+name: smoke
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install wp-now and start WordPress
+        env:
+          BLUEPRINT_PATH: ${{ github.workspace }}/.github/blueprint.json
+        run: |
+          set -euo pipefail
+          npm install -g @wp-now/wp-now
+          # Start wp-now in background, listening on port 8881.
+          wp-now start --port=8881 --blueprint="$BLUEPRINT_PATH" &
+          # Wait for the site to come up.
+          for _ in $(seq 1 60); do
+            if curl -fsSL http://localhost:8881/wp-json/ > /dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          curl -fsSL http://localhost:8881/wp-json/ > /dev/null
+
+      - name: Generate Application Password
+        id: appauth
+        run: |
+          set -euo pipefail
+          # wp-now creates an admin/admin user by default in dev mode.
+          # Use Basic auth with admin/password to call the REST API and create an app password.
+          RESP=$(curl -fsSL -u admin:password \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"smoke-test"}' \
+            http://localhost:8881/wp-json/wp/v2/users/me/application-passwords)
+          PW=$(echo "$RESP" | jq -r '.password')
+          echo "::add-mask::$PW"
+          echo "password=$PW" >> "$GITHUB_OUTPUT"
+
+      - name: Run the action under test
+        id: deploy
+        uses: ./
+        with:
+          site: http://localhost:8881
+          username: admin
+          app-password: ${{ steps.appauth.outputs.password }}
+          bundle: examples/fixture-bundle
+
+      - name: Verify the deployed app serves the marker
+        env:
+          APP_URL: ${{ steps.deploy.outputs.app-url }}
+        run: |
+          set -euo pipefail
+          test -n "$APP_URL"
+          BODY=$(curl -fsSL "$APP_URL")
+          echo "$BODY" | grep -q 'data-marker="dsgo-smoke-ok"'
+          echo "Smoke test PASSED: $APP_URL"
