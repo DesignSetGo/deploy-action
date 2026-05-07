@@ -110,6 +110,16 @@ automatically. To pin tighter:
 - uses: DesignSetGo/deploy-action@v1.2.0
 ```
 
+## Continuous integration
+
+The smoke test (`.github/workflows/smoke.yml`) currently runs on manual
+dispatch only because it depends on a public release zip of the
+DesignSetGo Apps plugin being installable into a fresh wp-now instance.
+Once that prerequisite is met, the workflow's `on:` block will be
+restored to `pull_request` + `push`. Until then, run smoke from the
+Actions tab when you want to verify a change end-to-end against a
+real WordPress site.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

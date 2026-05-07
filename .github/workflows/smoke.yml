@@ -1,10 +1,12 @@
 name: smoke
 
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
+  workflow_dispatch:
+  # NOTE: This smoke test is currently manual-only. It depends on a public
+  # release zip of designsetgo-apps being installable from a URL the runner
+  # can reach. Once that release exists (and the blueprint URL in
+  # .github/blueprint.json points at it), restore the pull_request and push
+  # triggers so smoke runs on every change.
 
 jobs:
   smoke:
