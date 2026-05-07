@@ -37,7 +37,18 @@ runs:
   steps:
     - name: Install DSGo CLI
       shell: bash
-      run: npm install -g "@designsetgo/cli@${{ inputs.cli-version }}"
+      env:
+        # Routed through env so a malicious cli-version can't shell-inject.
+        CLI_VERSION: ${{ inputs.cli-version }}
+        # The version range is user-supplied; reject anything that isn't a
+        # plausible npm semver range before passing it to npm.
+      run: |
+        set -euo pipefail
+        if [[ ! "$CLI_VERSION" =~ ^[~^]?[0-9A-Za-z.\-+*x]+$ ]]; then
+          echo "::error::cli-version is not a valid npm semver range: $CLI_VERSION" >&2
+          exit 1
+        fi
+        npm install -g "@designsetgo/cli@$CLI_VERSION"
 
     - name: Deploy
       id: deploy
@@ -46,14 +57,15 @@ runs:
         DSGO_SITE: ${{ inputs.site }}
         DSGO_USER: ${{ inputs.username }}
         DSGO_APP_PASSWORD: ${{ inputs.app-password }}
+        # Routed through env so a malicious bundle path can't shell-inject.
+        BUNDLE_PATH: ${{ inputs.bundle }}
       run: |
         set -euo pipefail
-        if [[ -n "${{ inputs.bundle }}" ]]; then
-          OUT=$(designsetgo apps deploy "${{ inputs.bundle }}" --json)
+        if [[ -n "$BUNDLE_PATH" ]]; then
+          OUT=$(designsetgo apps deploy "$BUNDLE_PATH" --json)
         else
           OUT=$(designsetgo apps deploy --json)
         fi
-        echo "$OUT"
         APP_URL=$(echo "$OUT" | jq -r '.url')
         APP_ID=$(echo "$OUT" | jq -r '.id')
         echo "app-url=$APP_URL" >> "$GITHUB_OUTPUT"
